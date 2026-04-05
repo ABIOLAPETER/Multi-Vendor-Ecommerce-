@@ -108,7 +108,14 @@ export class AuthService {
   }
 
   async logout(rawToken: string) {
+
     const hashedToken = this.hashToken(rawToken);
+    if (!hashedToken) {
+      throw new UnauthorizedException("Invalid token");
+    }
+    if (!await this.prisma.refreshToken.findUnique({ where: { token: hashedToken, revoked: false } })) {
+      throw new UnauthorizedException("Invalid or already revoked token");
+    }
 
     await this.prisma.refreshToken.updateMany({
       where: { token: hashedToken },
